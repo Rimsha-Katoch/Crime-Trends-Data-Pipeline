@@ -1,0 +1,10 @@
+
+pandas
+requests
+sqlalchemy
+psycopg2-binary
+prefect
+python-dotenv
+pyarrow
+pytest
+matplotlib
