@@ -35,7 +35,7 @@ The objective is to make police activity data easier to analyze by identifying t
 
 **Source:** Cambridge Police Department Daily Police Log
 
-**Dataset:** [Cambridge Police Daily Police Log](https://data.cambridgema.gov/)
+**Dataset:** [Cambridge Open Data Portal](https://data.cambridgema.gov/)
 
 The project uses police activity records obtained through the Socrata Open Data API.
 
@@ -66,24 +66,27 @@ Cambridge Police API
  Metabase Dashboard
 ```
 
-**Workflow orchestration:** Prefect manages the pipeline tasks, retries, execution monitoring, and scheduled runs.
+**Workflow orchestration:** Prefect manages pipeline tasks, retries, execution monitoring, and scheduled runs.
 
 **Offline support:** If API extraction fails, the pipeline can use the previously downloaded local CSV dataset.
 
 ## 5. Data Pipeline Workflow
 
 ### Stage 1: Data Extraction
+
 - Retrieves police records from the Socrata API in batches.
 - Supports API-based and local CSV extraction.
 - Uses a local backup when API extraction fails.
 
 ### Stage 2: Data Validation and Cleaning
+
 - Checks required columns.
 - Identifies duplicate records.
 - Validates date and timestamp fields.
 - Handles missing values.
 
 ### Stage 3: Data Transformation
+
 Creates additional analytical columns, including:
 
 - Year
@@ -97,6 +100,7 @@ Creates additional analytical columns, including:
 - Weekend Indicator
 
 ### Stage 4: Data Loading
+
 - Loads transformed records into PostgreSQL.
 - Uses SQLAlchemy for database connectivity.
 - Maintains pipeline execution history.
@@ -113,6 +117,7 @@ The workflow consists of four main tasks:
 4. Load
 
 Features include:
+
 - Task retries.
 - Retry delays.
 - Execution status tracking.
@@ -122,21 +127,39 @@ Features include:
 
 A separate `pipeline_runs` table stores pipeline execution details.
 
-## 7. Dashboard
+## 7. Dashboard Preview
 
-The Metabase dashboard provides analytical insights into police activity.
+The project includes an interactive Metabase dashboard that provides insights into police activity patterns, recorded locations, temporal trends, and data pipeline health.
 
-Dashboard sections include:
+### 7.1 Dashboard Overview
 
-- Activity Overview
-- Temporal Intelligence
-- Location Intelligence
-- Activity Category Analysis
-- Weekly Activity Patterns
-- Activity Insights
-- Data Pipeline Monitoring
+Displays key performance indicators and monthly police log activity trends.
 
-The dashboard includes KPI cards, charts, activity trends, location analysis, and pipeline execution history.
+![Dashboard Overview](docs/images/dashboard_overview.png)
+
+### 7.2 Temporal and Location Intelligence
+
+Visualizes police activity across different days, time intervals, and recorded locations.
+
+![Temporal and Location Intelligence](docs/images/temporal_location.png)
+
+### 7.3 Activity Category and Weekly Patterns
+
+Compares police activity categories and highlights weekday versus weekend patterns.
+
+![Activity Patterns](docs/images/activity_patterns.png)
+
+### 7.4 Detailed Activity Insights
+
+Highlights frequently recorded activity subtypes and monthly Incident versus Arrest trends.
+
+![Activity Insights](docs/images/activity_insights.png)
+
+### 7.5 Data Pipeline Monitoring
+
+Displays the latest pipeline execution status, records processed, and historical pipeline runs.
+
+![Pipeline Monitoring](docs/images/pipeline_monitoring.png)
 
 ## 8. Project Structure
 
@@ -146,6 +169,14 @@ Crime_Trends_Pipeline/
 ├── data/
 │   ├── raw/
 │   └── processed/
+│
+├── docs/
+│   └── images/
+│       ├── dashboard_overview.png
+│       ├── temporal_location.png
+│       ├── activity_patterns.png
+│       ├── activity_insights.png
+│       └── pipeline_monitoring.png
 │
 ├── src/
 │   └── crime_pipeline/
@@ -245,13 +276,15 @@ The Metabase dashboard and database connection must be configured before viewing
 
 The pipeline supports two data source modes:
 
-**Online Mode**
+### Online Mode
+
 - Set `DATA_SOURCE=api` in `.env`.
 - Retrieves records from the online API.
 - Updates the local CSV backup after successful extraction.
 - Uses the local backup if API extraction fails.
 
-**Offline Mode**
+### Offline Mode
+
 - Set `DATA_SOURCE=local` in `.env`.
 - Reads the previously downloaded CSV file.
 - Allows pipeline execution without internet access, provided Docker and the local services are running.
