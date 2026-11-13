@@ -16,7 +16,7 @@ The project demonstrates an automated data engineering workflow involving:
 - Data visualization and monitoring using Metabase.
 - Offline data processing through a local CSV backup.
 
-The objective is to make police activity data easier to analyze by identifying temporal patterns, frequently recorded activity types, and locations.
+The objective is to make police activity data easier to analyze by identifying temporal patterns, frequently recorded activity types, and recorded locations.
 
 ## 2. Technologies Used
 
@@ -30,12 +30,17 @@ The objective is to make police activity data easier to analyze by identifying t
 | Docker | Containerized services |
 | Prefect | Workflow orchestration and scheduling |
 | Metabase | Data visualization and dashboards |
+| Git and GitHub | Version control and project hosting |
 
 ## 3. Dataset
 
 **Source:** Cambridge Police Department Daily Police Log
 
-**Dataset:** [Cambridge Open Data Portal](https://data.cambridgema.gov/)
+**Dataset:** [Cambridge Police Daily Police Log](https://data.cambridgema.gov/Public-Safety/Cambridge-Police-Daily-Police-Log/3gki-wyrb)
+
+**Dataset ID:** `3gki-wyrb`
+
+**API Endpoint:** `https://data.cambridgema.gov/resource/3gki-wyrb.json`
 
 The project uses police activity records obtained through the Socrata Open Data API.
 
@@ -43,27 +48,29 @@ A local CSV copy is maintained to support offline execution and reproducibility.
 
 ## 4. System Architecture
 
+The following diagram illustrates the overall data processing workflow.
+
 ```text
-Cambridge Police API
-        |
-        v
-   Data Extraction
-        |
-        v
- Data Validation
-   and Cleaning
-        |
-        v
- Data Transformation
-        |
-        v
-   Data Loading
-        |
-        v
-    PostgreSQL
-        |
-        v
- Metabase Dashboard
+          Cambridge Police API
+                   |
+                   v
+             Data Extraction
+                   |
+                   v
+          Data Validation
+             and Cleaning
+                   |
+                   v
+          Data Transformation
+                   |
+                   v
+              Data Loading
+                   |
+                   v
+              PostgreSQL
+                   |
+                   v
+           Metabase Dashboard
 ```
 
 **Workflow orchestration:** Prefect manages pipeline tasks, retries, execution monitoring, and scheduled runs.
@@ -77,6 +84,7 @@ Cambridge Police API
 - Retrieves police records from the Socrata API in batches.
 - Supports API-based and local CSV extraction.
 - Uses a local backup when API extraction fails.
+- Updates the local CSV backup after successful API extraction.
 
 ### Stage 2: Data Validation and Cleaning
 
@@ -84,10 +92,11 @@ Cambridge Police API
 - Identifies duplicate records.
 - Validates date and timestamp fields.
 - Handles missing values.
+- Ensures data consistency before transformation.
 
 ### Stage 3: Data Transformation
 
-Creates additional analytical columns, including:
+Creates additional analytical columns through feature engineering, including:
 
 - Year
 - Month
@@ -99,15 +108,18 @@ Creates additional analytical columns, including:
 - Year-Month
 - Weekend Indicator
 
+These features support temporal analysis and help identify patterns in police activity.
+
 ### Stage 4: Data Loading
 
 - Loads transformed records into PostgreSQL.
 - Uses SQLAlchemy for database connectivity.
 - Maintains pipeline execution history.
+- Stores structured records for dashboard analysis.
 
 ## 6. Pipeline Orchestration and Monitoring
 
-Prefect is used to orchestrate the pipeline.
+Prefect is used to orchestrate and monitor the data pipeline.
 
 The workflow consists of four main tasks:
 
@@ -125,7 +137,7 @@ Features include:
 - Records processed per run.
 - Scheduled execution.
 
-A separate `pipeline_runs` table stores pipeline execution details.
+A separate `pipeline_runs` table stores pipeline execution details, including run status, timestamps, and the number of records processed.
 
 ## 7. Dashboard Preview
 
@@ -145,7 +157,7 @@ Visualizes police activity across different days, time intervals, and recorded l
 
 ### 7.3 Activity Category and Weekly Patterns
 
-Compares police activity categories and highlights weekday versus weekend patterns.
+Compares police activity categories and highlights weekday versus weekend activity patterns.
 
 ![Activity Patterns](docs/images/activity_patterns.png)
 
@@ -168,6 +180,9 @@ Crime_Trends_Pipeline/
 │
 ├── data/
 │   ├── raw/
+│   │   ├── cambridge_police_log_full.csv
+│   │   └── cambridge_police_log_sample.csv
+│   │
 │   └── processed/
 │
 ├── docs/
@@ -192,6 +207,10 @@ Crime_Trends_Pipeline/
 ├── sql/
 │   └── create_tables.sql
 │
+├── tests/
+│
+├── logs/
+│
 ├── docker-compose.yml
 ├── requirements.txt
 ├── .env.example
@@ -200,6 +219,8 @@ Crime_Trends_Pipeline/
 ```
 
 ## 9. Installation and Setup
+
+Follow these steps to set up and run the project on a local computer.
 
 ### Prerequisites
 
@@ -212,6 +233,7 @@ Crime_Trends_Pipeline/
 
 ```bash
 git clone https://github.com/Rimsha-Katoch/Crime-Trends-Data-Pipeline.git
+
 cd Crime-Trends-Data-Pipeline
 ```
 
@@ -239,17 +261,70 @@ Create a `.env` file using `.env.example` as a template.
 
 Configure the PostgreSQL connection details and data source.
 
+Example configuration:
+
+```env
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5433
+POSTGRES_DB=crime_db
+POSTGRES_USER=crime_user
+POSTGRES_PASSWORD=your_password
+
+DATA_SOURCE=local
+SOCRATA_DATASET_ID=3gki-wyrb
+```
+
+Replace the example password with your own password.
+
 Keep your actual credentials private. Never upload `.env` to GitHub.
 
-### Step 5: Start Docker Services
+### Step 5: Start PostgreSQL Using Docker
+
+Make sure Docker Desktop is running.
+
+Execute:
 
 ```bash
 docker compose up -d
 ```
 
-This starts the services defined in the Docker Compose configuration.
+This starts the PostgreSQL service defined in the Docker Compose configuration.
 
-### Step 6: Run the Pipeline
+Verify that the container is running:
+
+```bash
+docker ps
+```
+
+### Step 6: Start the Prefect Server
+
+Open a separate terminal, activate the virtual environment, and start the Prefect server:
+
+```powershell
+prefect server start
+```
+
+Keep this terminal running.
+
+Configure Prefect to connect to the local server:
+
+```powershell
+prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
+```
+
+The Prefect UI will be available at:
+
+http://127.0.0.1:4200
+
+### Step 7: Run the Data Pipeline
+
+Open another terminal in the project directory.
+
+Activate the virtual environment:
+
+```powershell
+.venv\Scripts\activate
+```
 
 Set the Python source directory:
 
@@ -257,60 +332,138 @@ Set the Python source directory:
 $env:PYTHONPATH = "src"
 ```
 
-Execute the pipeline:
+Execute the pipeline once:
 
 ```powershell
 python -c "from crime_pipeline.pipeline import crime_data_pipeline; crime_data_pipeline()"
 ```
 
-### Step 7: Access the Services
+This executes the extraction, validation, transformation, and loading tasks.
+
+#### Scheduled Execution (Optional)
+
+To start the Prefect deployment runner and enable scheduled execution, run:
+
+```powershell
+python .\src\crime_pipeline\pipeline.py
+```
+
+Keep this process running along with the Prefect server. The computer must remain awake, and the Docker services must remain available for scheduled runs.
+
+The scheduled deployment is configured to run daily at 8:00 AM Asia/Kolkata time.
+
+### Step 8: Start Metabase
+
+Metabase is currently managed separately from Docker Compose.
+
+**For the existing local installation:**
+
+Start the existing container:
+
+```powershell
+docker start crime_metabase
+```
+
+**For a fresh installation on another computer:**
+
+Create a Metabase container with persistent application storage:
+
+```powershell
+docker run -d --name crime_metabase -p 3000:3000 -v metabase_data:/metabase.db --restart unless-stopped metabase/metabase:latest
+```
+
+Open Metabase:
+
+http://localhost:3000
+
+A fresh Metabase installation will require initial setup and database configuration. It will not automatically contain the existing project dashboard.
+
+### Step 9: Configure the PostgreSQL Connection in Metabase
+
+In Metabase, add a new PostgreSQL database connection using the following settings:
+
+| Setting | Value |
+|---|---|
+| Database type | PostgreSQL |
+| Host | `host.docker.internal` |
+| Port | `5433` |
+| Database name | `crime_db` |
+| Username | Your `POSTGRES_USER` |
+| Password | Your `POSTGRES_PASSWORD` |
+
+The Metabase container connects to PostgreSQL through the Docker host.
+
+Save the connection and verify that the `crime_records` table is available.
+
+The existing dashboard can be recreated or restored separately after the database connection is configured.
+
+### Step 10: Access the Services
 
 | Service | Local URL |
 |---|---|
 | Metabase | http://localhost:3000 |
 | Prefect UI | http://127.0.0.1:4200 |
 
-The Metabase dashboard and database connection must be configured before viewing the analytics.
-
 ## 10. Online and Offline Execution
 
-The pipeline supports two data source modes:
+The pipeline supports two data source modes.
 
 ### Online Mode
 
-- Set `DATA_SOURCE=api` in `.env`.
-- Retrieves records from the online API.
+Set the following variable in `.env`:
+
+```env
+DATA_SOURCE=api
+```
+
+In this mode:
+
+- Retrieves records from the online Socrata API.
+- Extracts data in batches.
 - Updates the local CSV backup after successful extraction.
-- Uses the local backup if API extraction fails.
+- Uses the local backup if API extraction fails and a valid backup is available.
+
+An internet connection is required for API extraction.
 
 ### Offline Mode
 
-- Set `DATA_SOURCE=local` in `.env`.
-- Reads the previously downloaded CSV file.
-- Allows pipeline execution without internet access, provided Docker and the local services are running.
+Set the following variable in `.env`:
+
+```env
+DATA_SOURCE=local
+```
+
+In this mode:
+
+- Reads the previously downloaded local CSV dataset.
+- Processes records without accessing the online API.
+- Supports offline pipeline execution, provided Docker, PostgreSQL, and the required local files are available.
 
 ## 11. Deployment
 
 The project currently supports local execution and offline demonstration.
 
-Cloud deployment is a planned extension that requires hosting the pipeline, database, orchestration services, and dashboard with appropriate persistent storage and security configuration.
+Cloud deployment is a planned extension that would require hosting the pipeline, database, orchestration services, and dashboard with appropriate persistent storage and security configuration.
 
 ## 12. Future Enhancements
+
+Potential future improvements include:
 
 - Cloud deployment with persistent database storage.
 - Automated data quality reporting.
 - Additional crime trend analytics.
 - Advanced anomaly detection.
 - More detailed pipeline performance monitoring.
+- Improved dashboard accessibility and deployment.
 
 ## 13. Author
 
 **Rimsha Katoch**
 
-M.Tech Artificial Intelligence
+M.Tech in Artificial Intelligence (Pursuing)
 
 GitHub: [Rimsha-Katoch](https://github.com/Rimsha-Katoch)
 
 ---
 
-*This project was developed as a Data Engineering project to demonstrate data ingestion, transformation, workflow orchestration, database management, and analytical visualization.*
+*This project was developed as a Data Engineering project to demonstrate data ingestion, data transformation, workflow orchestration, database management, and analytical visualization.*

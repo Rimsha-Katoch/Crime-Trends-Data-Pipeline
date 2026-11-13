@@ -24,3 +24,8 @@ logs/*.log
 
 # IDE
 .vscode/
+
+# Metabase application database backups
+metabase_backup.db
+metabase_backup_consistent.db
+metabase_backup_final/
